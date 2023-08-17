@@ -11,10 +11,11 @@ public class Main {
                 Socket client = serverSocket.accept();
                 OutputStream clientOutStream = client.getOutputStream();
                 clientOutStream.write(
-                        ("HTTP/1.1 200\n"
-                                + "Content-Type: text/html\n"
-                                + "\n"
-                                + "<h1> Hello, web Framework! </h1>").getBytes()
+                        ("""
+                                HTTP/1.1 200
+                                Content-Type: text/html
+
+                                <h1> Hello, web Framework! </h1>""").getBytes()
                 );
                 clientOutStream.flush();
                 clientOutStream.close();
