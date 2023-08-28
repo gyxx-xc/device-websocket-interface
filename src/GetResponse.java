@@ -40,7 +40,8 @@ public class GetResponse extends Thread {
                 try {
                     if (TEXT_EXTENSION.contains(extension)) {
                         String content = Files.readString(file);
-                        content = content.replaceAll("###HOST###", Main.getLocalHostExactAddress().getHostAddress());
+                        content = content.replaceAll("###HOST###",
+                                Main.getLocalHostExactAddress().getHostAddress() + ":" + Main.port);
                         source = content.getBytes();
                     } else {
                         source = Files.readAllBytes(file);
@@ -96,7 +97,6 @@ public class GetResponse extends Thread {
                 clientOutStream.close();
             }
         } catch (IOException | NoSuchAlgorithmException ignore) {
-
         }
     }
 

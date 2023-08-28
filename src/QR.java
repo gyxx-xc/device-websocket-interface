@@ -5,7 +5,6 @@ import com.google.zxing.qrcode.QRCodeWriter;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.WindowEvent;
 
 public class QR extends JPanel {
     public JFrame frame;

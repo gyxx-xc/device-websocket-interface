@@ -1,25 +1,31 @@
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.NetworkInterface;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.security.NoSuchAlgorithmException;
+import java.net.*;
 import java.util.Enumeration;
 
 public class Main {
-    public static void main(String[] args) throws NoSuchAlgorithmException {
+    public static int port = 8887; // start from 8888, since is (++ port)
+    public static void main(String[] args) {
+        ServerSocket serverSocket;
+        while (true) {
+            try {
+                serverSocket = new ServerSocket(++ port);
+                break;
+            } catch (IOException ignore) {
+                continue; // port unavailable
+            } catch (IllegalArgumentException e) {
+                throw new RuntimeException("Port resource are used up");
+            }
+        }
+
         QR localIPqr;
         try {
-            localIPqr = new QR("http://" + getLocalHostExactAddress().getHostAddress()+"/index.html");
+            localIPqr = new QR("http://" + getLocalHostExactAddress().getHostAddress() + ":" + port + "/index.html");
         } catch (Exception e) {
             return;
         }
         localIPqr.showQRCode();
+
         try {
-            ServerSocket serverSocket = new ServerSocket(80);
             while (true) {
                 Socket client = serverSocket.accept();
                 localIPqr.close();
