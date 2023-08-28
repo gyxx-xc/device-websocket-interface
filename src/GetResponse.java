@@ -26,10 +26,11 @@ public class GetResponse extends Thread {
     public void run() {
         try {
             OutputStream clientOutStream = client.getOutputStream();
+            OutputStream outerWrite = Main.socket2C.getOutputStream();
             InputStream in = client.getInputStream();
             Scanner s = new Scanner(in, StandardCharsets.UTF_8);
             String data = s.useDelimiter("\\r\\n\\r\\n").next();
-            System.out.println(data);
+//            System.out.println(data);
             Matcher get = Pattern.compile("^GET (.*) HTTP/").matcher(data);
             if (get.find()) { // get command
                 Path file = Paths.get(".", "src", "html", get.group(1));
@@ -82,7 +83,10 @@ public class GetResponse extends Thread {
                                 else
                                     throw new RuntimeException("the data is not receive comprehensively");
                             }
-                            System.out.println(new String(Arrays.copyOfRange(d, 0, len)));
+//                            System.out.println(new String(Arrays.copyOfRange(d, 0, len)));
+                            outerWrite.write(Arrays.copyOfRange(d, 0, len));
+                            outerWrite.write(new byte[]{0});
+                            outerWrite.flush();
                         }
                     }
                 } else {

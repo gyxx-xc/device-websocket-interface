@@ -4,7 +4,11 @@ import java.util.Enumeration;
 
 public class Main {
     public static int port = 8887; // start from 8888, since is (++ port)
+    public static Socket socket2C;
     public static void main(String[] args) {
+        try {
+            socket2C = new Socket("localhost", Integer.parseInt(args[0]));
+        } catch (Exception e){throw new RuntimeException("caused by calling: " + e.getMessage());}
         ServerSocket serverSocket;
         while (true) {
             try {
