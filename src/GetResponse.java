@@ -85,8 +85,9 @@ public class GetResponse extends Thread {
                                 else
                                     throw new RuntimeException("the data is not receive comprehensively");
                             }
-//                            System.out.println(new String(Arrays.copyOfRange(d, 0, len)));
+                            System.out.println(new String(Arrays.copyOfRange(d, 0, len)));
                             byte[] info = Base64.getDecoder().decode(Arrays.copyOfRange(d, 0, len));
+
                             outerWrite.write(info);
                             outerWrite.write(new byte[]{0});
                             outerWrite.flush();

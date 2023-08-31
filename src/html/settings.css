@@ -1,3 +1,19 @@
 html {
     touch-action: none;
+    height: 100%;
+}
+
+body {
+    height: 100%;
+    margin: 0px;
+    background: #6cf;
+}
+
+#pos {
+    height: 10%;
+    background: #eee;
+}
+
+#debug {
+    margin: 0px;
 }

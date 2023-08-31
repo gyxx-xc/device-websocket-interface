@@ -24,10 +24,10 @@ public class Outer {
         while (true) {
             int len;
             for (len = 0; in.read(b, len, 1) != -1; len++) {
-                if(b[len] == 0) break;
+                if(len >= 3) break;
             }
             // System.out.println(new String(Arrays.copyOfRange(b, 0, len)));
-            System.out.println((b[1]));
+//            System.out.println((b[1]));
             if (b[0] != -1) {
                 System.out.println(((b[1] & 255)<<8) + (b[2] & 255));
             }
