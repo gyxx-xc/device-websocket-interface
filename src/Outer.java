@@ -2,6 +2,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.file.Paths;
 
 public class Outer {
     public static int port = 1000;
@@ -17,7 +18,7 @@ public class Outer {
                 throw new RuntimeException("Port resource are used up");
             }
         }
-        new Thread(() -> Main.main(new String[]{Integer.toString(Outer.port)})).start(); // call inner
+        new Thread(() -> Main.main(new String[]{Integer.toString(Outer.port), Paths.get(".", "src", "html").toString()})).start(); // call inner
         Socket socket = serverSocket.accept();
         InputStream in = socket.getInputStream();
         byte[] b = new byte[1024];

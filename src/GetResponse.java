@@ -16,13 +16,16 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class GetResponse extends Thread {
-    Socket client;
+    private final Socket client;
+    private String path;
+
+    public GetResponse(Socket client, String path) {
+        this.client = client;
+        this.path = path;
+    }
+
 
     public static final List<String> TEXT_EXTENSION = Arrays.asList("html", "css", "js", "txt");
-
-    public GetResponse(Socket client) {
-        this.client = client;
-    }
 
     @Override
     public void run() {
@@ -32,10 +35,9 @@ public class GetResponse extends Thread {
             InputStream in = client.getInputStream();
             Scanner s = new Scanner(in, StandardCharsets.UTF_8);
             String data = s.useDelimiter("\\r\\n\\r\\n").next();
-//            System.out.println(data);
             Matcher get = Pattern.compile("^GET (.*) HTTP/").matcher(data);
             if (get.find()) { // get command
-                Path file = Paths.get(".", "src", "html", get.group(1));
+                Path file = Paths.get(path, get.group(1));
                 if (Files.isDirectory(file)) file = Paths.get(file.toString(), "index.html");
                 String fileName = file.getFileName().toString();
                 String extension = fileName.substring(fileName.lastIndexOf(".")+1);
@@ -85,9 +87,7 @@ public class GetResponse extends Thread {
                                 else
                                     throw new RuntimeException("the data is not receive comprehensively");
                             }
-                            System.out.println(new String(Arrays.copyOfRange(d, 0, len)));
                             byte[] info = Base64.getDecoder().decode(Arrays.copyOfRange(d, 0, len));
-
                             outerWrite.write(info);
                             outerWrite.write(new byte[]{0});
                             outerWrite.flush();

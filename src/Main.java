@@ -33,7 +33,7 @@ public class Main {
             while (true) {
                 Socket client = serverSocket.accept();
                 localIPqr.close();
-                (new GetResponse(client)).start();
+                (new GetResponse(client, args[1])).start();
             }
         } catch (IOException e) {
             e.printStackTrace();
