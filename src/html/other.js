@@ -10,21 +10,27 @@ if("ontouchstart" in window) {
 var a = false;
 function getTouchPos(event) {
   var e = event || window.event;
-  document.getElementById("q").textContent =
-    (e.touches[0].pageY + ' ' + e.touches[0].pageX);
-  send(e.touches[0].pageY + ' ' + e.touches[0].pageX);
-    if (!a) {
-      html.requestFullscreen();
-      a = true;
-    }
+  transfer(e.touches[0])
 }
 function getMousePos(event) {
   var e = event || window.event;
-  document.getElementById("q").textContent =
-    (e.pageY + ' ' + e.pageX);
-  send(e.pageY + ' ' + e.pageX);
+  transfer(e);
+}
+
+function transfer(p){
   if (!a) {
     html.requestFullscreen();
     a = true;
   }
+  height = document.documentElement.scrollHeight;
+    var m = "";
+    m += String.fromCharCode(1);
+    var a = p.pageY/height*(1<<16);
+    a = a | 0
+    m += String.fromCharCode(a>>8);
+    m += String.fromCharCode(a&255);
+    m = btoa(m)
+      document.getElementById("q").textContent =
+        m;
+  send(m);
 }

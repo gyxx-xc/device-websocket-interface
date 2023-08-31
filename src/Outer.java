@@ -1,9 +1,7 @@
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.Arrays;
 
 public class Outer {
     public static int port = 1000;
@@ -28,7 +26,11 @@ public class Outer {
             for (len = 0; in.read(b, len, 1) != -1; len++) {
                 if(b[len] == 0) break;
             }
-            System.out.println(new String(Arrays.copyOfRange(b, 0, len)));
+            // System.out.println(new String(Arrays.copyOfRange(b, 0, len)));
+            System.out.println((b[1]));
+            if (b[0] != -1) {
+                System.out.println(((b[1] & 255)<<8) + (b[2] & 255));
+            }
         }
     }
 }

@@ -1,4 +1,3 @@
-import javax.swing.filechooser.FileNameExtensionFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -9,7 +8,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Base64;
+import java.util.List;
+import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -84,7 +86,8 @@ public class GetResponse extends Thread {
                                     throw new RuntimeException("the data is not receive comprehensively");
                             }
 //                            System.out.println(new String(Arrays.copyOfRange(d, 0, len)));
-                            outerWrite.write(Arrays.copyOfRange(d, 0, len));
+                            byte[] info = Base64.getDecoder().decode(Arrays.copyOfRange(d, 0, len));
+                            outerWrite.write(info);
                             outerWrite.write(new byte[]{0});
                             outerWrite.flush();
                         }
