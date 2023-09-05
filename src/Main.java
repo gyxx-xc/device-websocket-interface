@@ -72,6 +72,6 @@ public class Main {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return null;
+        throw new RuntimeException("acquire address failed");
     }
 }

@@ -2,6 +2,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -17,94 +18,35 @@ import java.util.regex.Pattern;
 
 public class GetResponse extends Thread {
     private final Socket client;
-    private String path;
+    private final String path;
 
     public GetResponse(Socket client, String path) {
         this.client = client;
         this.path = path;
     }
 
-
-    public static final List<String> TEXT_EXTENSION = Arrays.asList("html", "css", "js", "txt");
+    public static final List<String> TEXT_EXTENSION = Arrays.asList("html", "css", "js", "txt", "php");
 
     @Override
     public void run() {
         try {
             OutputStream clientOutStream = client.getOutputStream();
+            InputStream clientInStream = client.getInputStream();
             OutputStream outerWrite = Main.socket2C.getOutputStream();
-            InputStream in = client.getInputStream();
-            Scanner s = new Scanner(in, StandardCharsets.UTF_8);
-            String data = s.useDelimiter("\\r\\n\\r\\n").next();
-            Matcher get = Pattern.compile("^GET (.*) HTTP/").matcher(data);
-            if (get.find()) { // get command
-                Path file = Paths.get(path, get.group(1));
-                if (Files.isDirectory(file)) file = Paths.get(file.toString(), "index.html");
-                String fileName = file.getFileName().toString();
-                String extension = fileName.substring(fileName.lastIndexOf(".")+1);
-                byte[] source;
-                try {
-                    if (TEXT_EXTENSION.contains(extension)) {
-                        String content = Files.readString(file);
-                        content = content.replaceAll("###HOST###",
-                                Main.getLocalHostExactAddress().getHostAddress() + ":" + Main.port);
-                        source = content.getBytes();
-                    } else {
-                        source = Files.readAllBytes(file);
-                    }
-                } catch (Exception e) {
-                    clientOutStream.write(
-                            ("""
-                                    HTTP/1.1 404
-                                    
-                                    """).getBytes()
-                    );
-                    clientOutStream.flush();
-                    clientOutStream.close();
-                    return;
-                }
 
-                Matcher upgrade = Pattern.compile("Upgrade: (.*)").matcher(data);
+            Scanner s = new Scanner(clientInStream, StandardCharsets.UTF_8);
+            String request = s.useDelimiter("\\r\\n\\r\\n").next();
+            Matcher get = Pattern.compile("^GET (.*) HTTP").matcher(request);
+            if (get.find()) { // get command
+                Matcher upgrade = Pattern.compile("Upgrade: (.*)").matcher(request);
                 if (upgrade.find()) {
-                    Matcher match = Pattern.compile("Sec-WebSocket-Key: (.*)").matcher(data);
-                    if (match.find()) {
-                        byte[] response = ("HTTP/1.1 101 Switching Protocols\r\n"
-                                + "Connection: Upgrade\r\n"
-                                + "Upgrade: websocket\r\n"
-                                + "Sec-WebSocket-Accept: "
-                                + Base64.getEncoder().encodeToString(MessageDigest.getInstance("SHA-1").digest(
-                                (match.group(1) + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").getBytes(StandardCharsets.UTF_8)))
-                                + "\r\n\r\n").getBytes(StandardCharsets.UTF_8);
-                        clientOutStream.write(response);
-                        clientOutStream.flush();
-                        response = new byte[1024];
-                        byte[] d = new byte[1024];
-                        while (in.read(response, 0, 6) != -1) {
-                            int len = response[1] & 127;
-                            byte[] mask = Arrays.copyOfRange(response, 2, 6);
-                            for (int i = 0; i < len; i++) {
-                                if (in.read(response, 6 + i, 1) != -1)
-                                    d[i] = (byte) (response[i + 6] ^ mask[i & 3] & 255);
-                                else
-                                    throw new RuntimeException("the data is not receive comprehensively");
-                            }
-                            byte[] info = Base64.getDecoder().decode(Arrays.copyOfRange(d, 0, len));
-                            outerWrite.write(info);
-                            outerWrite.write(new byte[]{0});
-                            outerWrite.flush();
-                        }
-                    }
+                    connectWebSocket(request, clientOutStream, clientInStream, outerWrite);
                 } else {
-                    clientOutStream.write(
-                            joinByteArray(("""
-                                    HTTP/1.1 200
-                                    
-                                    """).getBytes(), source)
-                    );
-                    clientOutStream.flush();
+                    responseHttp(get.group(1), clientOutStream);
                 }
-                clientOutStream.close();
             }
-        } catch (IOException | NoSuchAlgorithmException ignore) {
+        } catch (IOException | NoSuchAlgorithmException e) {
+            e.printStackTrace();
         }
     }
 
@@ -119,4 +61,176 @@ public class GetResponse extends Thread {
         return result;
 
     }
+
+    protected void responseHttp(String filePath, OutputStream clientOutStream) throws IOException {
+        Path file = Paths.get(path, filePath);
+        if (Files.isDirectory(file)) file = Paths.get(file.toString(), "index.html");
+        String fileName = file.getFileName().toString();
+        String extension = fileName.substring(fileName.lastIndexOf(".")+1);
+        byte[] source;
+        try {
+            if (TEXT_EXTENSION.contains(extension)) {
+                String content = Files.readString(file);
+                content = content.replaceAll("###HOST###",
+                        Main.getLocalHostExactAddress().getHostAddress() + ":" + Main.port);
+                source = content.getBytes();
+            } else {
+                source = Files.readAllBytes(file);
+            }
+        } catch (Exception e) {
+            clientOutStream.write(
+                    ("""
+                                    HTTP/1.1 404
+                                    
+                                    """).getBytes()
+            );
+            clientOutStream.flush();
+            clientOutStream.close();
+            client.close();
+            return;
+        }
+        clientOutStream.write(
+                joinByteArray(("""
+                                    HTTP/1.1 200
+                                    
+                                    """).getBytes(), source)
+        );
+        clientOutStream.flush();
+        clientOutStream.close();
+        client.close();
+    }
+
+    protected void connectWebSocket(
+            String request,
+            OutputStream clientOutStream,
+            InputStream clientInStream,
+            OutputStream outerWrite)
+            throws IOException, NoSuchAlgorithmException {
+        Matcher match = Pattern.compile("Host: (.*)").matcher(request);
+        if (!match.find()) {
+            badRequest(clientOutStream, "{\"error\": {\"message\": \"missing host\",}}");
+            return;
+        }
+        match = Pattern.compile("Sec-WebSocket-Version: 13").matcher(request);
+        if (!match.find()) {
+            badRequest(clientOutStream, "{\"error\": {\"message\": \"WebSocket version not acceptable\",}}");
+            return;
+        }
+        match = Pattern.compile("Sec-WebSocket-Key: (.*)").matcher(request);
+        if (!match.find()) {
+            badRequest(clientOutStream, "{\"error\": {\"message\": \"Missing WebSocket Key\",}}");
+            return;
+        }
+        byte[] response = ("HTTP/1.1 101 Switching Protocols\r\n"
+                + "Connection: Upgrade\r\n"
+                + "Upgrade: websocket\r\n"
+                + "Sec-WebSocket-Accept: "
+                + Base64.getEncoder().encodeToString(MessageDigest.getInstance("SHA-1").digest(
+                (match.group(1) + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").getBytes(StandardCharsets.UTF_8)))
+                + "\r\n\r\n").getBytes(StandardCharsets.UTF_8);
+        clientOutStream.write(response);
+        clientOutStream.flush();
+        response = new byte[10];
+        byte[] d = new byte[1024];
+        while (clientInStream.read(response, 0, 2) != -1) {
+            if ((response[1] & 128) == 0) { // client not masked
+                endSocket(clientOutStream, (short) 1002);
+                return;
+            }
+            int len = response[1] & 127;
+            if (len == 126) {
+                if (clientInStream.read(response, 2, 2) != -1) {
+                    len = (response[2] & 255) << 8 | (response[3] & 255);
+                } else {
+                    endSocket(clientOutStream, (short) 1002);
+                    return;
+                }
+            } else if (len == 127) {
+                // only the last two bits will be used for len
+                // if the len is longer than 16 bits...(2^16 = 2 TiB)
+                // just end the socket, since it is too big
+                if (clientInStream.read(response, 2, 4) != -1) {
+                    len = (response[8] & 255) << 8 | (response[9] & 255);
+                } else {
+                    endSocket(clientOutStream, (short) 1002);
+                    return;
+                }
+                if (response[2] != 0 &&
+                        response[3] != 0 &&
+                        response[4] != 0 &&
+                        response[5] != 0 &&
+                        response[6] != 0 &&
+                        response[7] != 0) {
+                    endSocket(clientOutStream, (short) 1002);
+                    return;
+                }
+            }
+            byte[] mask = new byte[4];
+            if (clientInStream.read(mask, 0, 4) == -1) {
+                endSocket(clientOutStream, (short) 1002);
+                return;
+            }
+            for (int i = 0; i < len; i++) {
+                // It's not too slow, so I just leave it like this
+                if (clientInStream.read(d, i, 1) != -1)
+                    d[i] = (byte) (d[i] ^ mask[i & 3] & 255);
+                else {
+                    endSocket(clientOutStream, (short) 1002);
+                    return;
+                }
+            }
+            if ((response[0] & 15) == 8) {
+                if (d[0] == 3 && d[1] == (byte) 0xE8) {
+                    endSocket(clientOutStream, (short) 1000);
+                    System.exit(0);
+                } else if (d[0] == 3 && d[1] == (byte) 0xE9) {
+                    endSocket(clientOutStream, (short) 1001);
+                    return;
+                } else {
+                    endSocket(clientOutStream, (short) (d[0] << 8 | d[1]));
+                    return;
+                }
+            }
+            if ((response[0] & 15) == 9) {
+                ByteBuffer byteBuffer = ByteBuffer
+                        .allocate(len < 125 ? 2 : 4 + len)
+                        .put((byte) 0x8A);
+                if (len < 125)
+                    byteBuffer.put((byte) len);
+                else
+                    byteBuffer.put((byte) 126).putShort((short) len);
+                clientOutStream.write(joinByteArray(byteBuffer.array(), d));
+                clientOutStream.flush();
+            }
+            if ((response[0] & 15) == 1) {
+                byte[] info = Base64.getDecoder().decode(Arrays.copyOfRange(d, 0, len));
+                outerWrite.write(len);
+                outerWrite.write(info);
+                outerWrite.flush();
+            }
+        }
+    }
+
+    private void badRequest(OutputStream clientOutStream, String message) throws IOException {
+        clientOutStream.write(
+                ("""
+                                 HTTP/1.1 400
+
+                                 """ + message).getBytes()
+        );
+        clientOutStream.flush();
+        clientOutStream.close();
+        client.close();
+    }
+
+    private void endSocket(OutputStream out, short statueCode) throws IOException {
+        ByteBuffer byteBuffer = ByteBuffer
+                .allocate(4)
+                .putShort((short) 0x8802)
+                .putShort(statueCode);
+        out.write(byteBuffer.array());
+        out.close();
+        client.close();
+    }
+
 }
