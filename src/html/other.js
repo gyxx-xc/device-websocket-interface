@@ -38,3 +38,7 @@ function transfer(p){
   document.getElementById("debug").textContent = m;
   send(m);
 }
+
+wsout.onmessage = function (e) {
+  console.log(e.data);
+}
