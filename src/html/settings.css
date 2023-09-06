@@ -6,14 +6,42 @@ html {
 body {
     height: 100%;
     margin: 0px;
+}
+
+.bar {
+    position: absolute;
     background: #6cf;
 }
 
-#pos {
-    height: 10%;
+.pos {
+    height: 0%;
     background: #eee;
 }
 
-#debug {
+.debug {
     margin: 0px;
+}
+
+.detect {
+    position: absolute;
+    height: 100%;
+    width: 100%;
+    background: none;
+}
+
+#throttle {
+    height: 80%;
+    width: 40%;
+
+    top: 10%;
+    bottom: 10%;
+    left: 20%;
+}
+
+#zoom {
+    height: 40%;
+    width: 10%;
+
+    bottom: 10%;
+    right: 10%;
 }

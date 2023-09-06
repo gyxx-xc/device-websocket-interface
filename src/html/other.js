@@ -1,44 +1,67 @@
 html = document.querySelector('html');
 
-if("ontouchstart" in window) {
+var touches = false;
+if ("ontouchstart" in window) {
+  touches = true;
   document.addEventListener("touchstart", getTouchPos);
   document.addEventListener("touchmove", getTouchPos);
 } else {
-  document.addEventListener("mousedown", getMousePos);
+  document.addEventListener("mousedown", function(){touches = true;});
+  document.addEventListener("mousemove", getMousePos);
+  document.addEventListener("mouseup", function(){touches = false;});
 }
 
 var a = false;
 function getTouchPos(event) {
+  if (!a) {
+    html.requestFullscreen();
+    a = true;
+  }
   var e = event || window.event;
-  transfer(e.touches[0])
+  for (var i = 0; i < e.touches.length; i ++){
+    transfer(e.touches[i]);
+  }
 }
 function getMousePos(event) {
   var e = event || window.event;
   transfer(e);
 }
 
-function transfer(p){
-  if (!a) {
-    html.requestFullscreen();
-    a = true;
-  }
-
+function transfer(p) {
+  if (!touches) return;
   height = document.documentElement.scrollHeight;
-  var a = p.pageY/height;
-  if (a < 0.1) a = 0.1;
-  if (a > 0.9) a = 0.9;
-  document.getElementById("pos").style.height = a*100 + "%";
+  var controlValue;
+  var isButtom;
+  if (p.target.className != "detect") return;
+  var controlTarget = p.target.parentElement;
+  if (controlTarget.className == "bar") {
+    isButtom = false;
+    if (controlTarget.id == "throttle") {
+      controlValue = 4;
+    }
+    if (controlTarget.id == "zoom") {
+      controlValue = 5;
+    }
+  } else if (controlTarget.className == "buttom") {;}
 
-  a = (a - 0.1) / 0.8;
-  a = (a * ((1<<16) - 1)) | 0;
-  var m = "";
-  m += String.fromCharCode(1);
-  m += String.fromCharCode((a>>8)&255) + String.fromCharCode(a&255);
+  var transferValue;
+  if (!isButtom) {
+    per = (p.pageY - controlTarget.offsetTop) / controlTarget.offsetHeight;
+    if (per < 0) per = 0;
+    if (per > 1) per = 1;
+    controlTarget.querySelector(".pos").style.height = per * 100 + "%";
+    per = (per * ((1 << 15))) | 0;
+    transferValue = per;
+  } else {;}
+  
+  var m = String.fromCharCode(controlValue)
+  + String.fromCharCode((transferValue >> 8) & 255) + String.fromCharCode(transferValue & 255);
+  controlTarget.querySelector(".debug").textContent = m;
   m = btoa(m);
-  document.getElementById("debug").textContent = m;
   send(m);
 }
 
 wsout.onmessage = function (e) {
-  console.log(e.data);
+  per = e.data/65536;
+  document.querySelectorAll(".pos")[1].style.height = per * 100 + "%";
 }
