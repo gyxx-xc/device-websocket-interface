@@ -1,3 +1,4 @@
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -66,20 +67,7 @@ public class GetResponse extends Thread {
 
     protected void responseHttp(String filePath, OutputStream clientOutStream) throws IOException {
         Path file = Paths.get(path, filePath);
-        if (Files.isDirectory(file)) file = Paths.get(file.toString(), "index.html");
-        String fileName = file.getFileName().toString();
-        String extension = fileName.substring(fileName.lastIndexOf(".")+1);
-        byte[] source;
-        try {
-            if (TEXT_EXTENSION.contains(extension)) {
-                String content = Files.readString(file);
-                content = content.replaceAll("###HOST###",
-                        Main.getLocalHostExactAddress().getHostAddress() + ":" + Main.port);
-                source = content.getBytes();
-            } else {
-                source = Files.readAllBytes(file);
-            }
-        } catch (Exception e) {
+        if (!Files.exists(file)) {
             clientOutStream.write(
                     ("""
                                     HTTP/1.1 404
@@ -90,6 +78,18 @@ public class GetResponse extends Thread {
             clientOutStream.close();
             client.close();
             return;
+        }
+        if (Files.isDirectory(file)) file = Paths.get(file.toString(), "index.html");
+        String fileName = file.getFileName().toString();
+        String extension = fileName.substring(fileName.lastIndexOf(".")+1);
+        byte[] source;
+        if (TEXT_EXTENSION.contains(extension)) {
+            String content = Files.readString(file);
+            content = content.replaceAll("###HOST###",
+                    Main.getLocalHostExactAddress().getHostAddress() + ":" + Main.port);
+            source = content.getBytes();
+        } else {
+            source = Files.readAllBytes(file);
         }
         clientOutStream.write(
                 joinByteArray(("""
@@ -125,8 +125,9 @@ public class GetResponse extends Thread {
             return;
         }
         Matcher get = Pattern.compile("^GET (.*) HTTP").matcher(request);
-        int selector;
+        int selector; // determinate which socket it will use
         if (!get.find()) return;
+        // TODO: modularize the different socket
         if (get.group(1).equals("/in")){
             selector = 1;
         } else if (get.group(1).equals("/out")){
@@ -144,7 +145,7 @@ public class GetResponse extends Thread {
                 + "\r\n\r\n").getBytes(StandardCharsets.UTF_8);
         clientOutStream.write(response);
         clientOutStream.flush();
-        if (selector == 1) {
+        if (selector == 1) { // read
             byte[] frame = new byte[10];
             byte[] d = new byte[1024];
             while (clientInStream.read(frame, 0, 2) != -1) {
@@ -195,10 +196,10 @@ public class GetResponse extends Thread {
                     }
                 }
                 if ((frame[0] & 15) == 8) {
-                    if (d[0] == 3 && d[1] == (byte) 0xE8) {
-                        endSocket(clientOutStream, (short) 1000);
+                    if (d[0] == 3 && d[1] == (byte) 0xE8) { // 1000 ( statue code = (d[0] << 8 | d[1]) )
+                        endSocket(clientOutStream, (short) 1000); // quited from client, so this program closed
                         System.exit(0);
-                    } else if (d[0] == 3 && d[1] == (byte) 0xE9) {
+                    } else if (d[0] == 3 && d[1] == (byte) 0xE9) { // 1001
                         endSocket(clientOutStream, (short) 1001);
                         return;
                     } else {
@@ -206,7 +207,7 @@ public class GetResponse extends Thread {
                         return;
                     }
                 }
-                if ((frame[0] & 15) == 9) {
+                if ((frame[0] & 15) == 9) { // replay ping
                     ByteBuffer byteBuffer = ByteBuffer
                             .allocate(len < 125 ? 2 : 4 + len)
                             .put((byte) 0x8A);
@@ -218,9 +219,7 @@ public class GetResponse extends Thread {
                     clientOutStream.flush();
                 }
                 if ((frame[0] & 15) == 1) {
-                    byte[] info = Base64.getDecoder().decode(Arrays.copyOfRange(d, 0, len));
-                    int l = info.length;
-                    outerWrite.write(joinByteArray(new byte[]{(byte) (l << 8), (byte) l}, info));
+                    outerWrite.write(joinByteArray(new byte[]{(byte) (len >> 8), (byte) len}, Arrays.copyOfRange(d, 0, len)));
                     outerWrite.flush();
                 }
             }

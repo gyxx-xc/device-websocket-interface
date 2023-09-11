@@ -56,7 +56,6 @@ function transfer(p) {
   
   var m = String.fromCharCode(controlValue)
   + String.fromCharCode((transferValue >> 8) & 255) + String.fromCharCode(transferValue & 255);
-  controlTarget.querySelector(".debug").textContent = m;
   m = btoa(m);
   send(m);
 }
