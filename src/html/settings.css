@@ -45,3 +45,12 @@ body {
     bottom: 10%;
     right: 10%;
 }
+
+#quit {
+    position: absolute;
+    border: none;
+    right: 10%;
+    top: 10%;
+    width: 10vw;
+    height: 10vw;
+}

@@ -57,7 +57,11 @@ function transfer(p) {
   send(m);
 }
 
-wsout.onmessage = function (e) {
-  per = e.data/65536;
+// you can use blobs if you want
+wsout.binaryType = "arraybuffer";
+wsout.addEventListener("message", function (e) {
+  view = new Uint16Array(e.data);
+  per = view[1]/65536;
   document.querySelectorAll(".pos")[1].style.height = per * 100 + "%";
-}
+});
+
