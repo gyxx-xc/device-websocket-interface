@@ -33,10 +33,6 @@ public class Main {
             while (true) {
                 Socket client = serverSocket.accept();
                 localIPqr.close();
-                // when connecting two devices, it may not work then
-                // that's bug about the thread safe
-                // I'm not sure how to solve it
-                // so may add this as a reminder in doc...
                 (new GetResponse(client, args[1])).start();
             }
         } catch (IOException e) {
