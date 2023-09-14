@@ -194,9 +194,13 @@ public class GetResponse extends Thread {
                         return;
                     }
                 }
+                // TODO: print the close reason
                 if ((frame[0] & 15) == 8) { // socket ends
                     if (d[0] == 3 && d[1] == (byte) 0xE8) { // 1000 ( statue code = (d[0] << 8 | d[1]) )
                         endSocket(clientOutStream, (short) 1000); // termination from device, so this program closed
+                        System.exit(0);
+                    } else if (d[0] == 0) { // the firefox said that the default close() is 1000, but they laid. it is 0
+                        endSocket(clientOutStream, (short) 1000);
                         System.exit(0);
                     } else if (d[0] == 3 && d[1] == (byte) 0xE9) { // 1001
                         endSocket(clientOutStream, (short) 1001);
