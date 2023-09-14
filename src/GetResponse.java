@@ -1,4 +1,3 @@
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -20,7 +19,6 @@ import java.util.regex.Pattern;
 public class GetResponse extends Thread {
     private final Socket client;
     private final String path;
-    private static volatile boolean threadLock;
 
     public GetResponse(Socket client, String path) {
         this.client = client;
@@ -219,7 +217,7 @@ public class GetResponse extends Thread {
                     clientOutStream.flush();
                 }
                 if ((frame[0] & 15) == 1) {
-                    outerWrite.write(joinByteArray(new byte[]{(byte) (len >> 8), (byte) len}, Arrays.copyOfRange(d, 0, len)));
+                    outerWrite.write(joinByteArray(ByteBuffer.allocate(4).putInt(len).array(), Arrays.copyOfRange(d, 0, len)));
                     outerWrite.flush();
                 }
             }
@@ -234,12 +232,12 @@ public class GetResponse extends Thread {
                 if (len > 125) {
                     byteBuffer = ByteBuffer
                             .allocate(4)
-                            .putShort((short) 0x817E)
+                            .putShort((short) 0x827E)
                             .putShort((short) len);
                 } else {
                     byteBuffer = ByteBuffer
                             .allocate(2)
-                            .put((byte) 0x81)
+                            .put((byte) 0x82)
                             .put((byte) len);
                 }
                 clientOutStream.write(joinByteArray(byteBuffer.array(), Arrays.copyOfRange(d, 0, len)));

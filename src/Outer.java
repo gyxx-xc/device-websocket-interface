@@ -1,31 +1,40 @@
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.file.Paths;
+import java.util.Arrays;
 
 public class Outer {
     public static int port = 1000;
     public static void main(String[] args) throws IOException {
         try (ServerSocket serverSocket = new ServerSocket(port)) {
 
-            // run java -jar interface.jar "your path" "pot number"
+            // for your program, open a thread and run:
+            // java -jar interface.jar "html folder path" "pot number"
             new Thread(() -> Main.main(new String[]{Integer.toString(Outer.port), Paths.get(".", "src", "html").toString()})).start(); // call inner
 
             Socket socket = serverSocket.accept();
             InputStream in = socket.getInputStream();
-            byte[] b = new byte[1024];
+            OutputStream out = socket.getOutputStream();
             while (true) {
+                // transfer format:
+                // int(4 bytes):len + bytes:info
                 int len;
-                if (in.read(b, 0, 2) == -1) return;
-                len = ((b[0] & 255) << 8) | (b[1] & 255);
-                if (in.read(b, 2, len) == -1) return;
+                byte[] b = new byte[1024];
+                if (in.read(b, 0, 4) != 4) return; // do error copping here
+                len = ByteBuffer.wrap(b).getInt();
+                if (in.read(b, 4, len) != len) return;
 
-                String value = Integer.toString(((b[3] & 255) << 8) | (b[4] & 255));
-                ByteBuffer byteBuffer = ByteBuffer.allocate(4).putInt(value.length());
-                socket.getOutputStream().write(GetResponse.joinByteArray(byteBuffer.array(), value.getBytes()));
-                socket.getOutputStream().flush();
+                // do something for the received data
+
+                // send data to device
+                // you can jump this step if you have no data to send
+                // for this demo, we echo back
+                out.write(Arrays.copyOfRange(b, 0, len+4));
+                out.flush();
             }
         }
     }

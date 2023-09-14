@@ -53,10 +53,7 @@ function transfer(p) {
     per = (per * ((1 << 15))) | 0;
     transferValue = per;
   } else {;}
-  
-  var m = String.fromCharCode(controlValue)
-  + String.fromCharCode((transferValue >> 8) & 255) + String.fromCharCode(transferValue & 255);
-  m = btoa(m);
+  let m = new Uint16Array([controlValue, transferValue]);
   send(m);
 }
 
