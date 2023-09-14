@@ -43,7 +43,7 @@ public class GetResponse extends Thread {
                 if (upgrade.find()) {
                     connectWebSocket(request, clientOutStream, clientInStream, outerWrite, outerIn);
                 } else {
-                    responseHttp(get.group(1), clientOutStream);
+                    responseFileRequest(get.group(1), clientOutStream);
                 }
             }
         } catch (IOException | NoSuchAlgorithmException e) {
@@ -63,7 +63,7 @@ public class GetResponse extends Thread {
 
     }
 
-    protected void responseHttp(String filePath, OutputStream clientOutStream) throws IOException {
+    protected void responseFileRequest(String filePath, OutputStream clientOutStream) throws IOException {
         Path file = Paths.get(path, filePath);
         if (!Files.exists(file)) {
             clientOutStream.write(
@@ -143,6 +143,7 @@ public class GetResponse extends Thread {
                 + "\r\n\r\n").getBytes(StandardCharsets.UTF_8);
         clientOutStream.write(response);
         clientOutStream.flush();
+        System.out.println("Websocket connection starts");
         if (selector == 1) { // read
             byte[] frame = new byte[10];
             byte[] d = new byte[1024];
@@ -193,9 +194,9 @@ public class GetResponse extends Thread {
                         return;
                     }
                 }
-                if ((frame[0] & 15) == 8) {
+                if ((frame[0] & 15) == 8) { // socket ends
                     if (d[0] == 3 && d[1] == (byte) 0xE8) { // 1000 ( statue code = (d[0] << 8 | d[1]) )
-                        endSocket(clientOutStream, (short) 1000); // quited from client, so this program closed
+                        endSocket(clientOutStream, (short) 1000); // termination from device, so this program closed
                         System.exit(0);
                     } else if (d[0] == 3 && d[1] == (byte) 0xE9) { // 1001
                         endSocket(clientOutStream, (short) 1001);
@@ -216,7 +217,7 @@ public class GetResponse extends Thread {
                     clientOutStream.write(joinByteArray(byteBuffer.array(), Arrays.copyOfRange(d, 0, len)));
                     clientOutStream.flush();
                 }
-                if ((frame[0] & 15) == 1) {
+                if ((frame[0] & 15) < 8) { // non control frame
                     outerWrite.write(joinByteArray(ByteBuffer.allocate(4).putInt(len).array(), Arrays.copyOfRange(d, 0, len)));
                     outerWrite.flush();
                 }
@@ -259,7 +260,7 @@ public class GetResponse extends Thread {
     }
 
     private void endSocket(OutputStream out, short statueCode) throws IOException {
-        System.out.println(statueCode);
+        System.out.println("socket ends: "+statueCode);
         ByteBuffer byteBuffer = ByteBuffer
                 .allocate(4)
                 .putShort((short) 0x8802)
