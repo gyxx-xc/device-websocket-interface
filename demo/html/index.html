@@ -3,29 +3,15 @@
 
 <head>
   <meta charset="utf-8">
-  <title>controller</title>
+  <title>demo</title>
 
-  <script type="text/javascript" src="socket.js"></script>
-  <script type="text/javascript" src="other.js"></script>
-  <link rel="stylesheet" type="text/css" href="settings.css">
-
+  <script src="socket.js"></script>
 </head>
 
 <body>
-  <div class="bar" id="throttle">
-    <div class="detect"></div>
-    <div class="pos">
-      <p class="debug">0</p>
-    </div>
-  </div>
-  <div class="bar" id="zoom">
-    <div class="detect"></div>
-    <div class="pos">
-      <p class="debug">0</p>
-    </div>
-  </div>
-
-  <button id="quit" onclick="ws.close(1000);alert('closed');">close</button>
+  <p>0</p>
+  <input type="range" onchange="change()">
+  <button onclick="ws.close()">quit</button>
 </body>
 
 </html>

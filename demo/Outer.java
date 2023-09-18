@@ -46,6 +46,7 @@ public class Outer {
                 if (in.read(b, 4, len) != len) return;
 
                 // do something for the received data
+                System.out.println(b[4]);
 
                 // send data to device
                 // you can jump this step if you have no data to send

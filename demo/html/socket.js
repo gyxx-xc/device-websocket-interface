@@ -8,7 +8,15 @@ if ("WebSocket" in window) {
 } else {
   alert("WebSocket is not support!");
 }
+// you can use blobs if you want
+wsout.binaryType = "arraybuffer";
+wsout.onmessage = function(e){
+  view = new Uint8Array(e.data);
+  document.querySelector("p").textContent = view[0];
+}
 
-function send(a) {
-  ws.send(a);
+function change(){
+message = new Int8Array(1);
+message[0] = document.getElementsByTagName("input")[0].value;
+ws.send(message);
 }
