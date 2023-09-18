@@ -6,7 +6,7 @@ The Device WebSocket Interface is an interface that allows easy connections betw
 
 Your computer is powerful and can support you in your tasks such as rendering and playing games. However, your phone has additional functionalities such as a touch screen, a gyroscope, and a better camera.
 
-Projects like [kde-connect](github.com/KDE/kdeconnect-kde) and other similar apps can achieve these functions, but they often require the installation of additional apps. Additionally, the connection process can be cumbersome and time-consuming. However, these projects are not developer-friendly as their primary focus is on providing runnable programs for users rather than offering interfaces.
+Projects like [kde-connect](https://github.com/KDE/kdeconnect-kde) and other similar apps can achieve these functions, but they often require the installation of additional apps. Additionally, the connection process can be cumbersome and time-consuming. However, these projects are not developer-friendly as their primary focus is on providing runnable programs for users rather than offering interfaces.
 
 This project offers another way to access these phone functions using your computer.
 
