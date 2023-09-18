@@ -252,6 +252,7 @@ public class GetResponse extends Thread {
     }
 
     private void badRequest(OutputStream clientOutStream, String message) throws IOException {
+        System.out.println("bad request: "+message);
         clientOutStream.write(
                 ("""
                                  HTTP/1.1 400

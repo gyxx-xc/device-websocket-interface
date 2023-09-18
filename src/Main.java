@@ -3,23 +3,21 @@ import java.net.*;
 import java.util.Enumeration;
 
 public class Main {
-    public static int port = 8887; // start from 8888, since is (++ port)
+    public static int port; // start from 8888, since is (++ port)
     public static Socket socket2C;
     public static void main(String[] args) {
         try {
             socket2C = new Socket("localhost", Integer.parseInt(args[0]));
         } catch (Exception e){throw new RuntimeException("caused by calling: " + e.getMessage());}
         ServerSocket serverSocket;
-        while (true) {
-            try {
-                serverSocket = new ServerSocket(++ port);
-                break;
-            } catch (IOException ignore) {
-                // port unavailable
-            } catch (IllegalArgumentException e) {
-                throw new RuntimeException("Port resource are used up");
-            }
+        try {
+            serverSocket = new ServerSocket(0);
+        } catch (IOException ignore) {
+            // port unavailable
+            throw new RuntimeException("socket are unavailable");
         }
+        port = serverSocket.getLocalPort();
+        System.out.println("server start on "+getLocalHostExactAddress().getHostAddress()+":"+port);
 
         QR localIPqr;
         try {
@@ -29,14 +27,14 @@ public class Main {
         }
         localIPqr.showQRCode();
 
-        try {
-            while (true) {
+        while (true) {
+            try {
                 Socket client = serverSocket.accept();
                 localIPqr.close();
                 (new GetResponse(client, args[1])).start();
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-        } catch (IOException e) {
-            e.printStackTrace();
         }
     }
 
